@@ -6,14 +6,15 @@ end
 
 module Math
   Naturals = 0..Float::INFINITY 
+  Nat = Naturals
 end
 
 class Enumerator
   class Lazy
     include ::Enumerable
 
-    def self.from_object(enum, met = :each)
-      self.new Enumerator, enum, met
+    def self.from_object(enum, met = :each, *args)
+      self.new Enumerator, enum, met, *args
     end
 
     def initialize(klass, *params, &bl)
@@ -28,27 +29,23 @@ class Enumerator
     end 
 
     def select &bl
-      Lazy.new(Filter, self, &bl)
-      #TODO: No block given
+      block_given? ? Lazy.new(Filter, self, &bl) : to_enum(:select)
     end
  
     def reject &bl
-      Lazy.new(Filter, self) {|obj| !yield(obj) }
-      #TODO: No block given
+      block_given? ? select {|obj| !yield(obj) } : to_enum(:reject)
     end
 
     def flat_map &bl
-      Lazy.new(FlatTransform, self, &bl)
-      #TODO: No block given
+      block_given? ? Lazy.new(FlatTransform, self, &bl) : to_enum(:flat_map)
     end
    
     def map &bl
-      Lazy.new(Transform, self, &bl)
-      #TODO: No block given
+      block_given? ? Lazy.new(Transform, self, &bl) : to_enum(:map)
     end
 
     def grep pattern
-      Lazy.new(Filter, self) {|obj| pattern === obj }.tap do |res|
+      select {|obj| pattern === obj }.tap do |res|
         res.each(&bl) if block_given?
       end
     end
@@ -64,9 +61,11 @@ class Enumerator
     end
 
     def drop_while &cond
-      #TODO: No block given
-      active = nil
-      select {|obj| active || (!yield(obj) && active = true) }
+      if block_given?
+        active = nil
+        select {|obj| active || (!yield(obj) && active = true) }
+      else to_enum(:drop_while)
+      end
     end
 
     def drop count
@@ -78,7 +77,21 @@ class Enumerator
     alias_method :collect_concat, :flat_map
     alias_method :find_all, :select
 
-  #TODO: :chunk, :each_cons, :each_slice, :slice_before
+    
+    [:find, :find_index, :partition, :group_by, :sort_by, :min_by, :max_by, 
+      :minmax_by, :each_with_index, :reverse_each, :each_entry, :each_slice, 
+      :each_cons, :each_with_object, :take_while].each do |met|
+
+      define_method(met) do |*args, &bl|
+        bl ? super(*args, &bl) : to_enum(met, *args)
+      end
+    end
+
+  #TODO: :chunk, :slice_before
+    
+    def to_enum met = :each, *args
+      met == :each ? self : Lazy.from_object(self, met, *args)
+    end
 
     def next_link
       @enum_class.new(*@params, &@block)
@@ -169,5 +182,6 @@ class Enumerator
         end
       end
     end
+
   end
 end
