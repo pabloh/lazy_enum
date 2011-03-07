@@ -54,7 +54,7 @@ class Enumerator
     end
 
     def zip(*others, &bl)
-      Lazy.new(Zipper, self, others).tap do |res|
+      Lazy.new(Zipper, self, *others).tap do |res|
         res.each(&bl) if block_given?
       end
     end
@@ -74,7 +74,7 @@ class Enumerator
     alias_method :collect_concat, :flat_map
     alias_method :find_all, :select
 
-  #TODO::chunk, :each_cons, :each_slice, :slice_before
+  #TODO: :chunk, :each_cons, :each_slice, :slice_before
 
   protected
     def get_enumerator
@@ -127,7 +127,7 @@ class Enumerator
 
     class Zipper < Pipe
       def initialize prev, *others
-        @prev, @others = prev, others.map {|other| Lazy.new(other) }
+        @prev, @others = prev, others.map {|other| other.to_enum }
       end
 
       def next
