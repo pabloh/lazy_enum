@@ -1,3 +1,10 @@
-Convert to lazy every ruby enumerable
+Convert to lazy any ruby enumerable.
 
-Right now, is only thinkering
+
+Eg.: (0..10**100).to_lazy.drop(1000).select {|x| x.prime? }.map {|x| x**2 }.take(100)
+
+Which more or less means "take the square of the first 100 numbers between 0 and 10^100, that are prime and bigger than 1000".
+
+
+
+Right now, this project is only thinkering.
