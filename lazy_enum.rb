@@ -33,7 +33,7 @@ class Enumerator
     end
  
     def reject &bl
-      Lazy.new(Filter.new(self) {|obj| !yield(obj) })
+      Lazy.new(Filter, self) {|obj| !yield(obj) }
       #TODO: No block given
     end
 
