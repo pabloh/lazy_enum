@@ -9,6 +9,10 @@ module Math
   Nat = Naturals
 end
 
+module Enumerable
+  alias_method :lazy, :to_lazy
+end
+
 class Enumerator
   class Lazy
     include ::Enumerable
