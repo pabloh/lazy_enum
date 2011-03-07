@@ -17,11 +17,11 @@ class Enumerator
     end
 
     def initialize(klass, *params, &bl)
-      @enum_class, (@first_param, *@other_params), @block = klass, params, bl
+      @enum_class, @params, @block = klass, params, bl
     end
 
     def each
-      enum = get_enumerator
+      enum = next_link
       loop { yield enum.next }
     rescue StopIteration 
       self
@@ -59,6 +59,10 @@ class Enumerator
       end
     end
 
+    def cycle
+      Lazy.new(Cycler, self)
+    end
+
     def drop_while &cond
       #TODO: No block given
       active = nil
@@ -76,25 +80,30 @@ class Enumerator
 
   #TODO: :chunk, :each_cons, :each_slice, :slice_before
 
-  protected
-    def get_enumerator
-      first_param = @first_param.is_a?(Lazy) ? @first_param.get_enumerator : @first_param
-      @enum_class.new(first_param, *@other_params, &@block)
+    def next_link
+      @enum_class.new(*@params, &@block)
     end
 
     class Pipe
+      include Enumerable
       def initialize prev
-        @prev = prev
+        @enum = to_enum_or_pipe(prev)
       end
 
       def next
-        @prev.next
+        @enum.next
+      end
+
+    protected
+      def to_enum_or_pipe prev
+        prev.is_a?(Lazy) ? prev.next_link : prev.to_enum
       end
     end
 
     class Filter < Pipe
       def initialize prev, &cond
-        @prev, @cond = prev, cond
+        super(prev)
+        @cond = cond
       end
 
       def next
@@ -105,29 +114,32 @@ class Enumerator
 
     class Transform < Pipe
       def initialize prev, &tfunc
-        @prev, @tfunc = prev, tfunc
+        super(prev)
+        @transform = tfunc
       end
 
       def next
-        @tfunc.call( super )
+        @transform.call( super )
       end
     end
 
     class FlatTransform < Pipe
       def initialize prev, &tfuct
-        @prev, @tfunc, @values = prev, tfunc, []
+        super(prev)
+        @transform, @values = tfunc, []
       end
 
       def next
         @values.concat Array(super).flatten if values.empty?
 
-        @tfunc.call(@values.shift)
+        @transform.call(@values.shift)
       end
     end
 
     class Zipper < Pipe
       def initialize prev, *others
-        @prev, @others = prev, others.map {|other| other.to_enum }
+        super(prev)
+        @others = others.map {|other| to_enum_or_pipe(other) }
       end
 
       def next
@@ -137,6 +149,23 @@ class Enumerator
           rescue StopIteration
             nil
           end
+        end
+      end
+    end
+    
+    class Cycler < Pipe
+      def initialize prev
+        super
+        @prev = prev
+      end
+      def next
+        super.tap { @called = true unless @called }
+      rescue StopIteration
+        if @called
+          @enum = to_enum_or_pipe(@prev)
+          retry 
+        else 
+          raise
         end
       end
     end
