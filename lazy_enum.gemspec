@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.email       = ["pablodherrero@gmail.com"]
   s.homepage    = "https://github.com/pabloh/lazy_enum"
   s.summary     = %q{Lazy Enumerable for Ruby}
-  s.description = %q{Convert any Enumerable to lazy}
+  s.description = %q{Lazy versions for every Enumerable method}
 
   s.rubyforge_project = "lazy_enum"
 
