@@ -1,6 +1,6 @@
 class Object
   def to_lazy met = :each
-    Enumerator::Lazy.from_object(self, met)
+    Enumerable::Lazy.from_object(self, met)
   end
 end
 
@@ -11,9 +11,7 @@ end
 
 module Enumerable
   alias_method :lazy, :to_lazy
-end
 
-class Enumerator
   class Lazy
     include ::Enumerable
 
