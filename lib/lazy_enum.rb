@@ -1,6 +1,10 @@
 class Object
-  def to_lazy met = :each
-    Enumerable::Lazy.from_object(self, met)
+  def to_lazy method = :each
+    Enumerable::Lazy.new self.to_enum(method)
+  end
+
+  def apply msg, *args
+    ->(*bargs) { self.public_send msg, *args, *bargs }
   end
 end
 
@@ -9,41 +13,45 @@ module Math
   Nat = Naturals
 end
 
+def lazy_enum &block
+  Enumerable::Lazy.new Enumerator.new(&block)
+end
+
 module Enumerable
   alias_method :lazy, :to_lazy
+
+  def to_lazy
+    Enumerable::Lazy.new self
+  end
 
   class Lazy
     include ::Enumerable
 
-    def self.from_object(enum, met = :each, *args)
-      self.new Enumerator, enum, met, *args
-    end
-
-    def initialize(klass, *params, &bl)
-      @enum_class, @params, @block = klass, params, bl
+    def initialize(source)
+      @source = source.respond_to?(:next) ? source : source.to_enum
     end
 
     def each
-      enum = next_link
-      loop { yield enum.next }
+      source = @source
+      loop { yield source.next }
     rescue StopIteration 
       self
     end 
 
     def select &bl
-      block_given? ? Lazy.new(Filter, self, &bl) : to_enum(:select)
+      block_given? ? Lazy.new(Filter.new(@source, &bl)) : no_block_given_error
     end
  
     def reject &bl
-      block_given? ? select {|obj| !yield(obj) } : to_enum(:reject)
+      block_given? ? select {|obj| !yield(obj) } : no_block_given_error
     end
 
     def flat_map &bl
-      block_given? ? Lazy.new(FlatTransform, self, &bl) : to_enum(:flat_map)
+      block_given? ? Lazy.new(FlatTransformer.new(@source, &bl)) : no_block_given_error
     end
    
     def map &bl
-      block_given? ? Lazy.new(Transform, self, &bl) : to_enum(:map)
+      block_given? ? Lazy.new(Transformer.new(@source, &bl)) : no_block_given_error
     end
 
     def grep pattern
@@ -53,7 +61,7 @@ module Enumerable
     end
 
     def zip(*others, &bl)
-      Lazy.new(Zipper, self, *others).tap do |res|
+      Lazy.new(Zipper.new(@source, *others)).tap do |res|
         res.each(&bl) if block_given?
       end
     end
@@ -65,8 +73,8 @@ module Enumerable
     def drop_while &cond
       if block_given?
         active = nil
-        select {|obj| active || (!yield(obj) && active = true) }
-      else to_enum(:drop_while)
+        select {|obj| active || !yield(obj) && active = true }
+      else no_block_given_error
       end
     end
 
@@ -74,73 +82,85 @@ module Enumerable
       i = 0
       drop_while { (i < count).tap { i+=1 } }
     end
+    
+    def take_while &bl
+      if block_given?
+        select {|obj| yield(obj) || raise(StopIteration.new) }
+      else
+        no_block_given_error
+      end
+    end
 
     alias_method :collect, :map
     alias_method :collect_concat, :flat_map
     alias_method :find_all, :select
 
     
+    # Instant result methods
     [:find, :find_index, :partition, :group_by, :sort_by, :min_by, :max_by, 
       :minmax_by, :each_with_index, :reverse_each, :each_entry, :each_slice, 
-      :each_cons, :each_with_object, :take_while].each do |met|
+      :each_cons, :each_with_object, :any?, :one?, :all?].each do |met|
 
-      define_method(met) do |*args, &bl|
-        bl ? super(*args, &bl) : to_enum(met, *args)
+      define_method(met) do |*args, &block|
+        block_given? ? no_block_given_error : super(*args, &block)
       end
     end
 
-  #TODO: :chunk, :slice_before
+   #TODO: :chunk, :slice_before
     
     def to_enum met = :each, *args
       met == :each ? self : Lazy.from_object(self, met, *args)
+    end
+    
+  protected
+  
+    def no_block_given_error
+      raise LocalJumpError.new "no block given"
     end
 
     def next_link
       @enum_class.new(*@params, &@block)
     end
 
-    class Pipe
-      include Enumerable
-      def initialize prev
-        @enum = to_enum_or_pipe(prev)
+
+    class Pipe #abstract class
+      attr :source
+      
+      def initialize source
+        @source = source
       end
 
       def next
-        @enum.next
-      end
-
-    protected
-      def to_enum_or_pipe prev
-        prev.is_a?(Lazy) ? prev.next_link : prev.to_enum
+        @source.next
       end
     end
 
     class Filter < Pipe
       def initialize prev, &cond
-        super(prev)
-        @cond = cond
+        super prev
+        @filter = cond
       end
 
       def next
-        while !@cond.call(val = super); end
+        nil until @filter.call(val = super)
         val
       end
     end
 
-    class Transform < Pipe
-      def initialize prev, &tfunc
-        super(prev)
-        @transform = tfunc
+    class Transformer < Pipe
+      def initialize prev, &transformer
+        super
+        @transformer = transformer
       end
 
       def next
-        @transform.call( super )
+        @transformer.call( super )
       end
     end
 
-    class FlatTransform < Pipe
+    class FlatTransformer < Pipe
       def initialize prev, &tfuct
-        super(prev)
+        super
         @transform, @values = tfunc, []
       end
 
@@ -153,8 +173,8 @@ module Enumerable
 
     class Zipper < Pipe
       def initialize prev, *others
-        super(prev)
-        @others = others.map {|other| to_enum_or_pipe(other) }
+        super
+        @others = others.map {|other| other }
       end
 
       def next
@@ -177,7 +197,7 @@ module Enumerable
         super.tap { @called = true unless @called }
       rescue StopIteration
         if @called
-          @enum = to_enum_or_pipe(@prev)
+          @source = to_enum_or_pipe(@prev)
           retry 
         else 
           raise
