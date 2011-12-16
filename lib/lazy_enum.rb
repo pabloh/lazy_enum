@@ -32,84 +32,87 @@ module Enumerable
     end
 
     def each
-      source = @source
-      loop { yield source.next }
+      @source.rewind
+      loop { yield @source.next }
     rescue StopIteration 
       self
     end 
 
-    def select &bl
-      block_given? ? Lazy.new(Filter.new(@source, &bl)) : no_block_given_error
+    def select &block
+      block_given? ? Lazy.new(Filter.new(@source, &block)) : no_block_given_error
     end
  
-    def reject &bl
+    def reject
       block_given? ? select {|obj| !yield(obj) } : no_block_given_error
     end
 
-    def flat_map &bl
-      block_given? ? Lazy.new(FlatTransformer.new(@source, &bl)) : no_block_given_error
+    def flat_map &block
+      block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : no_block_given_error
     end
    
-    def map &bl
-      block_given? ? Lazy.new(Transformer.new(@source, &bl)) : no_block_given_error
+    def map &block
+      block_given? ? Lazy.new(Transformer.new(@source, &block)) : no_block_given_error
     end
 
-    def grep pattern
+    def grep pattern, &block
       select {|obj| pattern === obj }.tap do |res|
-        res.each(&bl) if block_given?
+        res.each(&block) if block_given?
       end
     end
 
-    def zip(*others, &bl)
+    def zip(*others, &block)
       Lazy.new(Zipper.new(@source, *others)).tap do |res|
-        res.each(&bl) if block_given?
+        res.each(&block) if block_given?
       end
     end
 
-    def cycle
-      Lazy.new(Cycler, self)
-    end
-
-    def drop_while &cond
+    def drop_while
       if block_given?
-        active = nil
-        select {|obj| active || !yield(obj) && active = true }
+        dropping = true
+        reject {|obj| dropping && (yield(obj) || dropping = false) }
       else no_block_given_error
       end
     end
 
     def drop count
       i = 0
-      drop_while { (i < count).tap { i+=1 } }
+      drop_while { (i += 1) <= count }
     end
     
-    def take_while &bl
+    def take_while
       if block_given?
         select {|obj| yield(obj) || raise(StopIteration.new) }
       else
         no_block_given_error
       end
     end
+    
+    def take count
+      i = 0
+      take_while { (i += 1) <= count }
+    end
 
     alias_method :collect, :map
     alias_method :collect_concat, :flat_map
     alias_method :find_all, :select
 
-    
-    # Instant result methods
-    [:find, :find_index, :partition, :group_by, :sort_by, :min_by, :max_by, 
-      :minmax_by, :each_with_index, :reverse_each, :each_entry, :each_slice, 
-      :each_cons, :each_with_object, :any?, :one?, :all?].each do |met|
 
-      define_method(met) do |*args, &block|
-        block_given? ? no_block_given_error : super(*args, &block)
+    # Methods that already return enumerators
+    [:cycle, :slice_before, :chunk].each do |name|
+      define_method(name) do |*args, &block|
+        Lazy.new super(*args, &block)
       end
     end
 
-   #TODO: :chunk, :slice_before
     
-    def to_enum met = :each, *args
-      met == :each ? self : Lazy.from_object(self, met, *args)
+    # Instant result methods w/block
+    [:find, :detect, :find_index, :partition, :group_by, :sort_by, :min_by, 
+      :max_by, :minmax_by, :any?, :one?, :all?, :each_with_index, :reverse_each,
+      :each_slice, :each_cons, :each_with_object, :each_entry ].each do |name|
+
+      define_method(name) do |*args, &block|
+        block_given? ? no_block_given_error : super(*args, &block)
+      end
     end
     
   protected
@@ -117,11 +120,6 @@ module Enumerable
     def no_block_given_error
       raise LocalJumpError.new "no block given"
     end
-
-    def next_link
-      @enum_class.new(*@params, &@block)
-    end
-
 
     class Pipe #abstract class
       attr :source
@@ -133,11 +131,15 @@ module Enumerable
       def next
         @source.next
       end
+      
+      def rewind
+        @source.rewind
+      end
     end
 
     class Filter < Pipe
-      def initialize prev, &cond
-        super prev
+      def initialize source, &cond
+        super
         @filter = cond
       end
 
@@ -148,60 +150,53 @@ module Enumerable
     end
 
     class Transformer < Pipe
-      def initialize prev, &transformer
+      def initialize source, &transformer
         super
         @transformer = transformer
       end
 
       def next
-        @transformer.call( super )
+        @transformer.call super
       end
     end
 
     class FlatTransformer < Pipe
-      def initialize prev, &tfuct
+      def initialize source, &transformer
         super
-        @transform, @values = tfunc, []
+        @transform, @values = transformer, []
       end
 
       def next
-        @values.concat Array(super).flatten if values.empty?
+        @values.concat Array(super).flatten if @values.empty?
 
         @transform.call(@values.shift)
+      end
+      
+      def rewind
+        super
+        @values.clear
       end
     end
 
     class Zipper < Pipe
-      def initialize prev, *others
-        super
-        @others = others.map {|other| other }
+      def initialize source, *enums
+        super source
+        @others = enums.map {|enum| enum.respond_to?(:next) ? enum : enum.to_enum }
       end
 
       def next
-        [super] + @others.map do |other|
+        @others.map do |other|
           begin
             other.next
           rescue StopIteration
             nil
           end
-        end
+        end.unshift(super)
       end
-    end
-    
-    class Cycler < Pipe
-      def initialize prev
+      
+      def rewind
         super
-        @prev = prev
-      end
-      def next
-        super.tap { @called = true unless @called }
-      rescue StopIteration
-        if @called
-          @source = to_enum_or_pipe(@prev)
-          retry 
-        else 
-          raise
-        end
+        @others.each {|other| other.rewind }
       end
     end
 

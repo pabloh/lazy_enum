@@ -1,6 +1,33 @@
 Convert to lazy any ruby enumerable.
 
 
-Eg.: Prime.lazy.select {|x| x > 1000 }.map {|x| x**2 }.take(100)
+Example 1: Return the square of the first 100 prime numbers greater than 1000
 
-Which more or less means "return the square of the first 100 prime numbers bigger than 1000".
+require 'mathn'
+Prime.lazy.select {|x| x > 1000 }.map {|x| x**2 }.take(100).to_a
+
+
+Example 2: Find the 10001st prime. (Euler Proyect #7)
+
+Prime.lazy.drop(1000).first
+
+
+Example 3: Get the pytagorean triple which sum's equal to 1000. (Euler Proyect #9)
+
+dove_tailing = Enumerator.new do |yielder|
+  Math::Naturals.each do |z|
+    0.step(z) do |y|
+      0.step(z - y) do |x|
+        yielder << [x, y, z - y - x]
+      end
+    end
+  end
+end
+
+dove_tailing.lazy.select {|x,y,z| (z > y && y > x) && z**2 == x**2 + y**2 }.
+  select {|x,y,z| x + y + z == 1000 }.first
+
+
+Example 4: Calculate the sum of all the primes below two million. (Euler Proyect #10)
+
+Prime.lazy.take_while {|n| n < 2_000_000 }.inject(:+)
