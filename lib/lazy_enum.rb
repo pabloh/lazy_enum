@@ -9,7 +9,7 @@ class Object
 end
 
 module Math
-  Naturals = 0..Float::INFINITY 
+  Naturals = 0..Float::INFINITY
   Nat = Naturals
 end
 
@@ -34,14 +34,14 @@ module Enumerable
     def each
       @source.rewind
       loop { yield @source.next }
-    rescue StopIteration 
+    rescue StopIteration
       self
-    end 
+    end
 
     def select &block
       block_given? ? Lazy.new(Filter.new(@source, &block)) : no_block_given_error
     end
- 
+
     def reject
       block_given? ? select {|obj| !yield(obj) } : no_block_given_error
     end
@@ -49,7 +49,7 @@ module Enumerable
     def flat_map &block
       block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : no_block_given_error
     end
-   
+
     def map &block
       block_given? ? Lazy.new(Transformer.new(@source, &block)) : no_block_given_error
     end
@@ -78,7 +78,7 @@ module Enumerable
       i = 0
       drop_while { (i += 1) <= count }
     end
-    
+
     def take_while
       if block_given?
         select {|obj| yield(obj) || raise(StopIteration.new) }
@@ -86,7 +86,7 @@ module Enumerable
         no_block_given_error
       end
     end
-    
+
     def take count
       i = 0
       take_while { (i += 1) <= count }
@@ -104,9 +104,9 @@ module Enumerable
       end
     end
 
-    
+
     # Instant result methods w/block
-    [:find, :detect, :find_index, :partition, :group_by, :sort_by, :min_by, 
+    [:find, :detect, :find_index, :partition, :group_by, :sort_by, :min_by,
       :max_by, :minmax_by, :any?, :one?, :all?, :each_with_index, :reverse_each,
       :each_slice, :each_cons, :each_with_object, :each_entry ].each do |name|
 
@@ -114,16 +114,16 @@ module Enumerable
         block_given? ? no_block_given_error : super(*args, &block)
       end
     end
-    
+
   protected
-  
+
     def no_block_given_error
       raise LocalJumpError.new "no block given"
     end
 
     class Pipe #abstract class
       attr :source
-      
+
       def initialize source
         @source = source
       end
@@ -131,7 +131,7 @@ module Enumerable
       def next
         @source.next
       end
-      
+
       def rewind
         @source.rewind
       end
@@ -171,7 +171,7 @@ module Enumerable
 
         @transform.call(@values.shift)
       end
-      
+
       def rewind
         super
         @values.clear
@@ -193,7 +193,7 @@ module Enumerable
           end
         end.unshift(super)
       end
-      
+
       def rewind
         super
         @others.each {|other| other.rewind }
