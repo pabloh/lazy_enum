@@ -1,6 +1,6 @@
 class Object
-  def to_lazy method = :each
-    Enumerable::Lazy.new self.to_enum(method)
+  def lazy_enum method = :each
+    self.to_enum(method).lazy
   end
 
   def apply msg, *args
@@ -13,19 +13,19 @@ module Math
   Nat = Naturals
 end
 
-def lazy_enum &block
-  Enumerable::Lazy.new Enumerator.new(&block)
-end
-
 module Enumerable
-  alias_method :lazy, :to_lazy
-
   def to_lazy
-    Enumerable::Lazy.new self
+    Lazy.new self
   end
+
+  alias_method :lazy, :to_lazy
 
   class Lazy
     include ::Enumerable
+
+    def self.new *args
+      block_given? ? Enumerator.new(&block).lazy : super
+    end
 
     def initialize(source)
       @source = source.respond_to?(:next) ? source : source.to_enum
@@ -40,6 +40,7 @@ module Enumerable
       self
     end
 
+    # 'Lazyfied' methods
     def select &block
       block_given? ? Lazy.new(Filter.new(@source, &block)) : no_block_given_error
     end
@@ -100,7 +101,7 @@ module Enumerable
 
 
     # Methods that already return enumerators
-    [:slice_before, :chunk].each do |name|
+    %w[slice_before chunk].each do |name|
       define_method(name) do |*args, &block|
         super(*args, &block).lazy
       end
@@ -111,11 +112,25 @@ module Enumerable
     end
 
 
-    # Instant result methods w/block
-    [:find, :detect, :find_index, :partition, :group_by, :sort_by, :min_by,
-      :max_by, :minmax_by, :any?, :one?, :all?, :none?, :each_with_index,
-      :reverse_each,:each_slice, :each_cons, :each_with_object, :each_entry,
-      :inject, :reduce].each do |name|
+    # Instant result methods w/block (and arity 0)
+    %w[partition group_by sort_by min_by max_by minmax_by
+      any? one? all? none?].each do |name|
+
+      define_method(name) do |&block|
+        block_given? ? no_block_given_error : super(&block)
+      end
+    end
+
+    # Instant result methods w/block (and arity 1)
+    %w[each_slice each_cons each_with_object].each do |name|
+      define_method(name) do |arg, &block|
+        block_given? ? no_block_given_error : super(arg, &block)
+      end
+    end
+
+    # Instant result methods w/block (and arity -1)
+    %w[find detect find_index inject reduce each_with_index
+      reverse_each each_entry].each do |name|
 
       define_method(name) do |*args, &block|
         block_given? ? no_block_given_error : super(*args, &block)
