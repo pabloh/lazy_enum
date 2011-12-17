@@ -9,7 +9,7 @@ Prime.lazy.select {|x| x > 1000 }.map {|x| x**2 }.take(100).to_a
 
 Example 2: Find the 10001st prime. (Euler Proyect #7)
 
-Prime.lazy.drop(1000).first
+Prime.lazy.drop(10000).first
 
 
 Example 3: Get the pytagorean triple which sum's equal to 1000. (Euler Proyect #9)
