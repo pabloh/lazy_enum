@@ -24,8 +24,7 @@ module Enumerable
     include ::Enumerable
 
     def to_enum method = :each
-      res = super(:each)
-      method != :each ? res.to_enum(method) : res
+      method == :each ? super : super().to_enum(method)
     end
 
     def self.new *args
@@ -143,6 +142,7 @@ module Enumerable
     end
 
 
+    # Decorator classes with lazyfied behaviour
     class Pipe #abstract class
       attr :source
 
