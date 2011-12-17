@@ -23,6 +23,11 @@ module Enumerable
   class Lazy
     include ::Enumerable
 
+    def to_enum method = :each
+      res = super(:each)
+      method != :each ? res.to_enum(method) : res
+    end
+
     def self.new *args
       block_given? ? Enumerator.new(&block).lazy : super
     end
@@ -32,7 +37,7 @@ module Enumerable
     end
 
     def each
-      no_block_given_error unless block_given?
+      return to_lazy_enum unless block_given?
 
       @source.rewind
       loop { yield @source.next }
@@ -42,19 +47,19 @@ module Enumerable
 
     # 'Lazyfied' methods
     def select &block
-      block_given? ? Lazy.new(Filter.new(@source, &block)) : no_block_given_error
+      block_given? ? Lazy.new(Filter.new(@source, &block)) : to_lazy_enum(:select)
     end
 
     def reject
-      block_given? ? select {|obj| !yield(obj) } : no_block_given_error
+      block_given? ? select {|obj| !yield(obj) } : to_lazy_enum(:reject)
     end
 
     def flat_map &block
-      block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : no_block_given_error
+      block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : to_lazy_enum(:flat_map)
     end
 
     def map &block
-      block_given? ? Lazy.new(Transformer.new(@source, &block)) : no_block_given_error
+      block_given? ? Lazy.new(Transformer.new(@source, &block)) : to_lazy_enum(:map)
     end
 
     def grep pattern, &block
@@ -73,7 +78,7 @@ module Enumerable
       if block_given?
         dropping = true
         reject {|obj| dropping && (yield(obj) || dropping = false) }
-      else no_block_given_error
+      else to_lazy_enum :drop_while
       end
     end
 
@@ -86,7 +91,7 @@ module Enumerable
       if block_given?
         select {|obj| yield(obj) || raise(StopIteration.new) }
       else
-        no_block_given_error
+        to_lazy_enum :take_while
       end
     end
 
@@ -101,8 +106,8 @@ module Enumerable
 
 
     # Methods that already return enumerators
-    %w[slice_before chunk].each do |name|
-      define_method(name) do |*args, &block|
+    %w[slice_before chunk].each do |method|
+      define_method(method) do |*args, &block|
         super(*args, &block).lazy
       end
     end
@@ -114,34 +119,29 @@ module Enumerable
 
     # Instant result methods w/block (and arity 0)
     %w[partition group_by sort_by min_by max_by minmax_by
-      any? one? all? none?].each do |name|
+      any? one? all? none?].each do |method|
 
-      define_method(name) do |&block|
-        block_given? ? super(&block) : no_block_given_error
+      define_method(method) do |&block|
+        block_given? ? super(&block) : to_lazy_enum(method)
       end
     end
 
     # Instant result methods w/block (and arity 1)
-    %w[each_slice each_cons each_with_object].each do |name|
-      define_method(name) do |arg, &block|
-        block_given? ? super(arg, &block) : no_block_given_error
+    %w[each_slice each_cons each_with_object].each do |method|
+      define_method(method) do |arg, &block|
+        block_given? ? super(arg, &block) : to_lazy_enum(method)
       end
     end
 
     # Instant result methods w/block (and arity -1)
     %w[each_with_index reverse_each each_entry
-      find detect find_index].each do |name|
+      find detect find_index].each do |method|
 
-      define_method(name) do |*args, &block|
-        block_given? ? super(*args, &block) : no_block_given_error
+      define_method(method) do |*args, &block|
+        block_given? ? super(*args, &block) : to_lazy_enum(method)
       end
     end
 
-  protected
-
-    def no_block_given_error
-      raise LocalJumpError.new "no block given"
-    end
 
     class Pipe #abstract class
       attr :source
