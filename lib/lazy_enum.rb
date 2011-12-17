@@ -106,38 +106,27 @@ module Enumerable
 
     # Methods that already return enumerators
     %w[slice_before chunk].each do |method|
-      define_method(method) do |*args, &block|
-        super(*args, &block).lazy
-      end
+      class_eval "def #{method} *args; super.lazy; end"
     end
 
-    def cycle *args, &bl
+    def cycle *args
       block_given? ? super : super.lazy
     end
 
 
-    # Instant result methods w/block (and arity 0)
-    %w[partition group_by sort_by min_by max_by minmax_by
-      any? one? all? none?].each do |method|
+    # Instant result methods w/block (and different arities)
+    [ [ %w[partition group_by sort_by min_by max_by minmax_by
+        any? one? all? none?], ''],
+      [ %w[each_slice each_cons each_with_object], 'arg'],
+      [ %w[each_with_index reverse_each each_entry find
+        detect find_index], '*args'] ].each do |methods, arguments|
 
-      define_method(method) do |&block|
-        block_given? ? super(&block) : to_lazy_enum(method)
-      end
-    end
-
-    # Instant result methods w/block (and arity 1)
-    %w[each_slice each_cons each_with_object].each do |method|
-      define_method(method) do |arg, &block|
-        block_given? ? super(arg, &block) : to_lazy_enum(method)
-      end
-    end
-
-    # Instant result methods w/block (and arity -1)
-    %w[each_with_index reverse_each each_entry
-      find detect find_index].each do |method|
-
-      define_method(method) do |*args, &block|
-        block_given? ? super(*args, &block) : to_lazy_enum(method)
+      methods.each do |method|
+        class_eval <<-METHOD_DEF
+          def #{method} #{arguments}
+            block_given? ? super : to_lazy_enum(:#{method})
+          end
+        METHOD_DEF
       end
     end
 
