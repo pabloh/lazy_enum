@@ -1,5 +1,5 @@
 class Object
-  def lazy_enum method = :each
+  def to_lazy_enum method = :each
     self.to_enum(method).lazy
   end
 
@@ -117,14 +117,14 @@ module Enumerable
       any? one? all? none?].each do |name|
 
       define_method(name) do |&block|
-        block_given? ? no_block_given_error : super(&block)
+        block_given? ? super(&block) : no_block_given_error
       end
     end
 
     # Instant result methods w/block (and arity 1)
     %w[each_slice each_cons each_with_object].each do |name|
       define_method(name) do |arg, &block|
-        block_given? ? no_block_given_error : super(arg, &block)
+        block_given? ? super(arg, &block) : no_block_given_error
       end
     end
 
@@ -133,7 +133,7 @@ module Enumerable
       reverse_each each_entry].each do |name|
 
       define_method(name) do |*args, &block|
-        block_given? ? no_block_given_error : super(*args, &block)
+        block_given? ? super(*args, &block) : no_block_given_error
       end
     end
 
