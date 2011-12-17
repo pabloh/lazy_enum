@@ -129,8 +129,8 @@ module Enumerable
     end
 
     # Instant result methods w/block (and arity -1)
-    %w[find detect find_index inject reduce each_with_index
-      reverse_each each_entry].each do |name|
+    %w[each_with_index reverse_each each_entry
+      find detect find_index].each do |name|
 
       define_method(name) do |*args, &block|
         block_given? ? super(*args, &block) : no_block_given_error
