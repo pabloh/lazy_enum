@@ -32,6 +32,8 @@ module Enumerable
     end
 
     def each
+      no_block_given_error unless block_given?
+
       @source.rewind
       loop { yield @source.next }
     rescue StopIteration
@@ -98,17 +100,22 @@ module Enumerable
 
 
     # Methods that already return enumerators
-    [:cycle, :slice_before, :chunk].each do |name|
+    [:slice_before, :chunk].each do |name|
       define_method(name) do |*args, &block|
-        Lazy.new super(*args, &block)
+        super(*args, &block).lazy
       end
+    end
+
+    def cycle *args, &bl
+      block_given? ? super : super.lazy
     end
 
 
     # Instant result methods w/block
     [:find, :detect, :find_index, :partition, :group_by, :sort_by, :min_by,
-      :max_by, :minmax_by, :any?, :one?, :all?, :each_with_index, :reverse_each,
-      :each_slice, :each_cons, :each_with_object, :each_entry ].each do |name|
+      :max_by, :minmax_by, :any?, :one?, :all?, :none?, :each_with_index,
+      :reverse_each,:each_slice, :each_cons, :each_with_object, :each_entry,
+      :inject, :reduce].each do |name|
 
       define_method(name) do |*args, &block|
         block_given? ? no_block_given_error : super(*args, &block)
