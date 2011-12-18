@@ -103,15 +103,14 @@ module Enumerable
     alias_method :find_all, :select
 
 
-    # Methods that already return enumerators
+    # Methods that always return enumerators
     %w[slice_before chunk].each do |method|
       class_eval "def #{method} *args; super.lazy; end"
     end
 
 
-    # Instant result methods w/block (and different arities)
-    [ [ %w[partition group_by sort_by min_by max_by minmax_by
-        any? one? all? none?], ''],
+    # Methods that return enums when no block is given 
+    [ [ %w[partition group_by sort_by min_by max_by minmax_by], ''],
       [ %w[each_slice each_cons each_with_object], 'arg'],
       [ %w[each_with_index reverse_each each_entry cycle find
         detect find_index], '*args'] ].each do |methods, arguments|
