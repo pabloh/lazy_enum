@@ -36,7 +36,7 @@ module Enumerable
     end
 
     def each
-      return to_lazy_enum unless block_given?
+      return self unless block_given?
 
       @source.rewind
       loop { yield @source.next }
