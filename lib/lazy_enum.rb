@@ -77,7 +77,8 @@ module Enumerable
       if block_given?
         dropping = true
         reject {|obj| dropping && (yield(obj) || dropping = false) }
-      else to_lazy_enum :drop_while
+      else
+        to_lazy_enum :drop_while
       end
     end
 
@@ -109,22 +110,18 @@ module Enumerable
       class_eval "def #{method} *args; super.lazy; end"
     end
 
-    def cycle *args
-      block_given? ? super : super.lazy
-    end
-
 
     # Instant result methods w/block (and different arities)
     [ [ %w[partition group_by sort_by min_by max_by minmax_by
         any? one? all? none?], ''],
       [ %w[each_slice each_cons each_with_object], 'arg'],
-      [ %w[each_with_index reverse_each each_entry find
+      [ %w[each_with_index reverse_each each_entry cycle find
         detect find_index], '*args'] ].each do |methods, arguments|
 
       methods.each do |method|
         class_eval <<-METHOD_DEF
           def #{method} #{arguments}
-            block_given? ? super : to_lazy_enum(:#{method})
+            block_given? ? super : super.lazy
           end
         METHOD_DEF
       end
