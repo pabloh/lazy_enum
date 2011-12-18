@@ -60,15 +60,13 @@ module Enumerable
     end
 
     def grep pattern, &block
-      select {|obj| pattern === obj }.tap do |res|
-        res.each(&block) if block_given?
-      end
+      res = select {|obj| pattern === obj }
+      block_given? ? res.map(&block).to_a : res
     end
 
     def zip(*others, &block)
-      Lazy.new(Zipper.new(@source, *others)).tap do |res|
-        res.each(&block) if block_given?
-      end
+      res = Lazy.new(Zipper.new(@source, *others))
+      block_given? ? res.each(&block) && nil : res
     end
 
     def drop_while
