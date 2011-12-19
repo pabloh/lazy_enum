@@ -71,7 +71,7 @@ describe Enumerable::Lazy do
       subject { lazy_range.select {|x| x > 3 } }
 
       it "should return an enumerable which filters elements from the decorated enumerable" do
-        subject.take(10).to_a.should == [*4..13]
+        subject.take(10).should == [*4..13]
       end
       it { should be_kind_of(Enumerable::Lazy) }
     end
@@ -87,7 +87,7 @@ describe Enumerable::Lazy do
       subject { lazy_range.reject {|x| x < 3 } }
 
       it "should return an enumerable which excludes elements from the decorated enumerable" do
-        subject.take(10).to_a.should == [*3..12]
+        subject.take(10).should == [*3..12]
       end
       it { should be_kind_of(Enumerable::Lazy) }
     end
@@ -103,14 +103,14 @@ describe Enumerable::Lazy do
       subject { lazy_range.map {|x| x + 3 } }
 
       it "should return an enumerable which maps over the decorated enumerable" do
-        subject.take(10).to_a.should == [*3..12]
+        subject.take(10).should == [*3..12]
       end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
       subject { lazy_range.map }
       it "should return a lazy enumerable encapsulating Enumerable#map" do
-        subject.take(10).to_a.should == [*0..9]
+        subject.take(10).should == [*0..9]
       end
       it { should be_kind_of(Enumerable::Lazy) }
     end
@@ -122,7 +122,7 @@ describe Enumerable::Lazy do
 
       it { should be_kind_of(Enumerable::Lazy) }
       it "should return an enumerable which maps over the flattened decoratee results" do
-        subject.take(7).to_a.should == [3, 4, 7, 8, 3, 4, 7]
+        subject.take(7).should == [3, 4, 7, 8, 3, 4, 7]
       end
     end
     context "when no block is given" do
@@ -137,7 +137,7 @@ describe Enumerable::Lazy do
       subject { lazy_range.drop_while {|x| x < 3 } }
 
       it "should return an enumerable which excludes the fist elements that fullfils the condition" do
-        subject.take(10).to_a.should == [*3..12]
+        subject.take(10).should == [*3..12]
       end
       it { should be_kind_of(Enumerable::Lazy) }
     end
@@ -168,18 +168,15 @@ describe Enumerable::Lazy do
     subject { lazy_range.drop 5 }
 
     it "should return an enumerable which excludes the fist n elements" do
-      subject.take(10).to_a.should == [*5..14]
+      subject.take(10).should == [*5..14]
     end
     it { should be_kind_of(Enumerable::Lazy) }
   end
 
   describe "#take" do
-    subject { lazy_range.take 5 }
-
     it "should return an enumerable which only includes the fist n elements" do
-      subject.to_a.should == [*0..4]
+      lazy_range.take(5).should == [*0..4]
     end
-    it { should be_kind_of(Enumerable::Lazy) }
   end
 
   describe "#grep" do
@@ -202,7 +199,7 @@ describe Enumerable::Lazy do
 
       it { should be_kind_of(Enumerable::Lazy) }
       it "should return an enumerator which zips the decoratee results with the enumerables passed" do
-        subject.take(6).to_a.should == [ [0,15], [1,16], [2,17], [3,18], [4,nil], [5,nil]]
+        subject.take(6).should == [ [0,15], [1,16], [2,17], [3,18], [4,nil], [5,nil]]
       end
     end
 
@@ -247,7 +244,7 @@ describe Enumerable::Lazy do
 
       it { should be_kind_of(Enumerable::Lazy) }
       it "should cycle over the decorated enumerable elements" do
-        subject.take(5).to_a.should == [5, 6 ,7, 8, 5]
+        subject.take(5).should == [5, 6 ,7, 8, 5]
       end
       it "should return an empty array if previous enumerator did not produce any result" do
         (0...0).lazy.cycle.to_a.should == []

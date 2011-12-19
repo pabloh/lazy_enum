@@ -81,11 +81,6 @@ module Enumerable
       drop_while { (i += 1) <= count }
     end
 
-    def take count
-      i = 0
-      take_while { (i += 1) <= count }
-    end
-
     def grep pattern, &block
       res = select {|obj| pattern === obj }
       block_given? ? res.map(&block).to_a : res

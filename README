@@ -4,7 +4,7 @@ Convert to lazy any ruby enumerable.
 Example 1: Return the square of the first 100 prime numbers greater than 1000
 
 require 'mathn'
-Prime.lazy.select {|x| x > 1000 }.map {|x| x**2 }.take(100).to_a
+Prime.lazy.select {|x| x > 1000 }.map {|x| x**2 }.take(100)
 
 
 Example 2: Find the 10001st prime. (Euler Proyect #7)
