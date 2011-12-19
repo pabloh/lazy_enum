@@ -32,7 +32,9 @@ describe Enumerable::Lazy do
   describe "#to_enum" do
     subject { lazy_range.to_enum }
 
-    it "should return an enumerable wrapping the receiver"
+    it "should return an enumerator wrapping the receiver" do
+      subject.take(12).should == lazy_range.take(12)
+    end
     it { should be_kind_of(Enumerator) }
     context "with a parameter different to :each" do
       it "should return and enumerator encapsulating the Enumerable's implementation for the method"
@@ -180,16 +182,24 @@ describe Enumerable::Lazy do
   end
 
   describe "#grep" do
-    subject { lazy_range.grep(5..8) }
-
     context "when no block is given" do
+      subject { lazy_range.grep(5..8) }
       it { should be_kind_of(Enumerable::Lazy) }
-      it "should return an enumerable which filters over the decoratee using the passed argument"
+      it "should return an enumerable which filters over the decoratee using the passed argument" do
+        subject.take(4).should == [*5..8]
+      end
     end
 
     context "when a block is given"  do
-      it "should iterate over the decorated enumerable"
-      it "should return an array with the block's results"
+      let (:lazy_array) { [*1..28].lazy }
+
+      it "should iterate over the decorated enumerable" do
+        enum = [4,5].to_enum
+        lazy_array.grep(4..5) {|element| element.should == enum.next }
+      end
+      it "should return an array with the block's results" do
+        lazy_array.grep(4..5) {|element| element + 1 }.should == [5,6]
+      end
     end
   end
 
