@@ -70,7 +70,9 @@ describe Enumerable::Lazy do
     context "when a block is given" do
       subject { lazy_range.select {|x| x > 3 } }
 
-      it "should return an enumerable which filters elements from the decorated enumerable"
+      it "should return an enumerable which filters elements from the decorated enumerable" do
+        subject.take(10).to_a.should == [*4..13]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
@@ -84,7 +86,9 @@ describe Enumerable::Lazy do
     context "when a block is given" do
       subject { lazy_range.reject {|x| x < 3 } }
 
-      it "should return an enumerable which excludes elements from the decorated enumerable"
+      it "should return an enumerable which excludes elements from the decorated enumerable" do
+        subject.take(10).to_a.should == [*3..12]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
@@ -98,12 +102,16 @@ describe Enumerable::Lazy do
     context "when a block is given" do
       subject { lazy_range.map {|x| x + 3 } }
 
-      it "should return an enumerable which maps over the decorated enumerable"
+      it "should return an enumerable which maps over the decorated enumerable" do
+        subject.take(10).to_a.should == [*3..12]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
       subject { lazy_range.map }
-      it "should return a lazy enumerable encapsulating Enumerable#map"
+      it "should return a lazy enumerable encapsulating Enumerable#map" do
+        subject.take(10).to_a.should == [*0..9]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
   end
@@ -128,7 +136,9 @@ describe Enumerable::Lazy do
     context "when a block is given" do
       subject { lazy_range.drop_while {|x| x < 3 } }
 
-      it "should return an enumerable which excludes the fist elements that fullfils the condition"
+      it "should return an enumerable which excludes the fist elements that fullfils the condition" do
+        subject.take(10).to_a.should == [*3..12]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
@@ -140,9 +150,11 @@ describe Enumerable::Lazy do
 
   describe "#take_while" do
     context "when a block is given" do
-      subject { lazy_range.take_while {|x| x < 3 } }
+      subject { lazy_range.take_while {|x| x <= 3 } }
 
-      it "should return an enumerable which only includes the fist elements that fullfils the condition"
+      it "should return an enumerable which only includes the fist elements that fullfils the condition" do
+        subject.to_a == [*0..3]
+      end
       it { should be_kind_of(Enumerable::Lazy) }
     end
     context "when no block is given" do
@@ -155,14 +167,18 @@ describe Enumerable::Lazy do
   describe "#drop" do
     subject { lazy_range.drop 5 }
 
-    it "should return an enumerable which excludes the fist n elements"
+    it "should return an enumerable which excludes the fist n elements" do
+      subject.take(10).to_a.should == [*5..14]
+    end
     it { should be_kind_of(Enumerable::Lazy) }
   end
 
   describe "#take" do
     subject { lazy_range.take 5 }
 
-    it "should return an enumerable which only includes the fist n elements"
+    it "should return an enumerable which only includes the fist n elements" do
+      subject.to_a.should == [*0..4]
+    end
     it { should be_kind_of(Enumerable::Lazy) }
   end
 

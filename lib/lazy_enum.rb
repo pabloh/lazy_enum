@@ -76,11 +76,6 @@ module Enumerable
       end
     end
 
-    def grep pattern, &block
-      res = select {|obj| pattern === obj }
-      block_given? ? res.map(&block).to_a : res
-    end
-
     def drop count
       i = 0
       drop_while { (i += 1) <= count }
@@ -89,6 +84,11 @@ module Enumerable
     def take count
       i = 0
       take_while { (i += 1) <= count }
+    end
+
+    def grep pattern, &block
+      res = select {|obj| pattern === obj }
+      block_given? ? res.map(&block).to_a : res
     end
 
     def zip(*others, &block)
