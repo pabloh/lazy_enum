@@ -39,9 +39,7 @@ module Enumerable
       return self unless block_given?
 
       @source.rewind
-      loop { yield @source.next }
-    rescue StopIteration
-      self
+      loop { yield @source.next } || self
     end
 
     # 'Lazyfied' methods
