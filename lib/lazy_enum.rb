@@ -51,22 +51,12 @@ module Enumerable
       block_given? ? select {|obj| !yield(obj) } : to_lazy_enum(:reject)
     end
 
-    def flat_map &block
-      block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : to_lazy_enum(:flat_map)
-    end
-
     def map &block
       block_given? ? Lazy.new(Transformer.new(@source, &block)) : to_lazy_enum(:map)
     end
 
-    def grep pattern, &block
-      res = select {|obj| pattern === obj }
-      block_given? ? res.map(&block).to_a : res
-    end
-
-    def zip(*others, &block)
-      res = Lazy.new(Zipper.new(@source, *others))
-      block_given? ? res.each(&block) && nil : res
+    def flat_map &block
+      block_given? ? Lazy.new(FlatTransformer.new(@source, &block)) : to_lazy_enum(:flat_map)
     end
 
     def drop_while
@@ -78,11 +68,6 @@ module Enumerable
       end
     end
 
-    def drop count
-      i = 0
-      drop_while { (i += 1) <= count }
-    end
-
     def take_while
       if block_given?
         select {|obj| yield(obj) || raise(StopIteration.new) }
@@ -91,10 +76,26 @@ module Enumerable
       end
     end
 
+    def grep pattern, &block
+      res = select {|obj| pattern === obj }
+      block_given? ? res.map(&block).to_a : res
+    end
+
+    def drop count
+      i = 0
+      drop_while { (i += 1) <= count }
+    end
+
     def take count
       i = 0
       take_while { (i += 1) <= count }
     end
+
+    def zip(*others, &block)
+      res = Lazy.new(Zipper.new(@source, *others))
+      block_given? ? res.each(&block) && nil : res
+    end
+
 
     alias_method :collect, :map
     alias_method :collect_concat, :flat_map
