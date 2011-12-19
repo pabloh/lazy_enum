@@ -27,7 +27,7 @@ module Enumerable
       method == :each ? super : super().to_enum(method)
     end
 
-    def self.new *args
+    def self.new *args, &block
       block_given? ? Enumerator.new(&block).lazy : super
     end
 
