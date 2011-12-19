@@ -107,7 +107,7 @@ module Enumerable
     end
 
 
-    # Methods that return enums when no block is given 
+    # Methods that return enums when no block is given
     [ [ %w[partition group_by sort_by min_by max_by minmax_by], ''],
       [ %w[each_slice each_cons each_with_object], 'arg'],
       [ %w[each_with_index reverse_each each_entry cycle find
