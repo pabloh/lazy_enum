@@ -66,6 +66,12 @@ describe Enumerable::Lazy do
     end
   end
 
+  describe "#take" do
+    it "should instantiate the fist n elements" do
+      lazy_range.take(5).should == [*0..4]
+    end
+  end
+
 
   # 'Lazyfied' methods
   describe "#select" do
@@ -173,12 +179,6 @@ describe Enumerable::Lazy do
       subject.take(10).should == [*5..14]
     end
     it { should be_kind_of(Enumerable::Lazy) }
-  end
-
-  describe "#take" do
-    it "should return an enumerable which only includes the fist n elements" do
-      lazy_range.take(5).should == [*0..4]
-    end
   end
 
   describe "#grep" do
