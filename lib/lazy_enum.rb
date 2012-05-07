@@ -2,10 +2,6 @@ class Object
   def to_lazy_enum method = :each
     self.to_enum(method).lazy
   end
-
-  def apply msg, *args
-    ->(*bargs) { self.public_send msg, *args, *bargs }
-  end
 end
 
 module Math
